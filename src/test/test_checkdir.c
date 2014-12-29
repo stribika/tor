@@ -32,6 +32,7 @@ test_checkdir_perms(void *testdata)
   umask(022);
 
   /* setup data directory before tests. */
+  mode_t original_umask = umask(0022);
   tor_free(options->DataDirectory);
   options->DataDirectory = tor_strdup(get_fname(subdir));
   tt_int_op(mkdir(options->DataDirectory, 0750), OP_EQ, 0);
@@ -131,6 +132,7 @@ test_checkdir_perms(void *testdata)
 
  done:
   tor_free(testdir);
+  umask(original_umask);
 }
 
 #define CHECKDIR(name,flags)                              \
