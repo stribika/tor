@@ -37,22 +37,35 @@
 #endif
 
 #ifdef USE_SENTINELS
+
+#include "crypto.h"
+
+
 /** Magic value that we stick at the end of a memarea so we can make sure
  * there are no run-off-the-end bugs. */
-#define SENTINEL_VAL 0x90806622u
+static uint32_t sentinel_val = 0;
+
+static void
+init_sentinel_val()
+{
+  crypto_strongest_rand((uint8_t*)&sentinel_val, sizeof(sentinel_val));
+}
+
 /** How many bytes per area do we devote to the sentinel? */
 #define SENTINEL_LEN sizeof(uint32_t)
 /** Given a mem_area_chunk_t with SENTINEL_LEN extra bytes allocated at the
  * end, set those bytes. */
 #define SET_SENTINEL(chunk)                                     \
   STMT_BEGIN                                                    \
-  set_uint32( &(chunk)->U_MEM[chunk->mem_size], SENTINEL_VAL ); \
+  while (sentinel_val == 0) { init_sentinel_val(); }            \
+  set_uint32( &(chunk)->U_MEM[chunk->mem_size], sentinel_val ); \
   STMT_END
 /** Assert that the sentinel on a memarea is set correctly. */
 #define CHECK_SENTINEL(chunk)                                           \
   STMT_BEGIN                                                            \
+  while (sentinel_val == 0) { init_sentinel_val(); }                    \
   uint32_t sent_val = get_uint32(&(chunk)->U_MEM[chunk->mem_size]);     \
-  tor_assert(sent_val == SENTINEL_VAL);                                 \
+  tor_assert(sent_val == sentinel_val);                                 \
   STMT_END
 #else
 #define SENTINEL_LEN 0
